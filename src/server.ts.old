@@ -1,0 +1,154 @@
+import express, { Application, Request, Response } from 'express';
+import helmet from 'helmet';
+import cors from 'cors';
+import morgan from 'morgan';
+import pool from '../db';  // Import the database connection pool
+import { ResultSetHeader } from 'mysql2';
+
+const app: Application = express();
+
+// Middleware setup
+app.use(helmet());
+app.use(cors());
+app.use(express.urlencoded({ limit: '25mb', extended: true }));
+app.use(express.json());
+
+// Get all users endpoint
+app.get('/api/users', async (req: Request, res: Response) => {
+  try {
+    const [rows] = await pool.query('SELECT * FROM users');
+    res.json(rows);
+  } catch (error) {
+    res.status(500).json({ message: 'Database query error', error });
+  }
+});
+
+// Save user endpoint
+app.post('/api/save-user', async (req, res) => {
+  const userData = req.body;
+
+  const {
+    gender,
+    name,
+    location,
+    email,
+    login,
+    dob,
+    registered,
+    phone,
+    cell,
+    picture,
+    nat
+  } = userData;
+
+  const {
+    title,
+    first: first_name,
+    last: last_name
+  } = name;
+
+  const {
+    street,
+    city,
+    state,
+    country,
+    postcode,
+    coordinates,
+    timezone
+  } = location;
+
+  const {
+    number: street_number,
+    name: street_name
+  } = street;
+
+  const {
+    latitude,
+    longitude
+  } = coordinates;
+
+  const {
+    offset: timezone_offset,
+    description: timezone_description
+  } = timezone;
+
+  const {
+    uuid,
+    username,
+    password,
+    salt,
+    md5,
+    sha1,
+    sha256
+  } = login;
+
+  try {
+    const [result] = await pool.query(`
+      INSERT INTO users (
+        gender, title, first_name, last_name, street_number, street_name, city,
+        state, country, postcode, latitude, longitude, timezone_offset, timezone_description,
+        email, uuid, username, password, salt, md5, sha1, sha256, dob, dob_age,
+        registered, registered_age, phone, cell, picture_large, picture_medium,
+        picture_thumbnail, nat
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    `, [
+      gender, title, first_name, last_name, street_number, street_name, city,
+      state, country, postcode, latitude, longitude, timezone_offset, timezone_description,
+      email, uuid, username, password, salt, md5, sha1, sha256, dob.date, dob.age,
+      registered.date, registered.age, phone, cell, picture.large, picture.medium,
+      picture.thumbnail, nat
+    ]);
+
+    const newUser = { id: (result as ResultSetHeader).insertId, ...userData };
+    res.status(201).json(newUser);
+  } catch (error) {
+    res.status(500).json({ message: 'Database insert error', error });
+  }
+});
+
+// Update user endpoint
+app.put('/api/update-user/:id', async (req: Request, res: Response) => {
+  const id = parseInt(req.params.id);
+  const { name, email } = req.body;
+
+  try {
+    const [result] = await pool.query('UPDATE users SET name = ?, email = ? WHERE id = ?', [name, email, id]);
+    if ((result as ResultSetHeader).affectedRows > 0) {
+      res.json({ id, name, email });
+    } else {
+      res.status(404).json({ message: 'User not found' });
+    }
+  } catch (error) {
+    res.status(500).json({ message: 'Database update error', error });
+  }
+});
+
+// Delete user endpoint
+app.delete('/api/delete-user/:id', async (req: Request, res: Response) => {
+  const id = parseInt(req.params.id);
+
+  try {
+    const [result] = await pool.query('DELETE FROM users WHERE id = ?', [id]);
+    if ((result as ResultSetHeader).affectedRows > 0) {
+      res.json({ message: 'User deleted' });
+    } else {
+      res.status(404).json({ message: 'User not found' });
+    }
+  } catch (error) {
+    res.status(500).json({ message: 'Database delete error', error });
+  }
+});
+
+// Root Route
+app.get('/', (req: Request, res: Response) => {
+  res.send('Welcome to your Express server!');
+});
+
+// Logging middleware
+app.use(morgan('dev')); // 'dev' format provides concise output
+
+// Start the server
+const port = process.env.PORT || 3000;
+app.listen(port, () => {
+  console.log(`Server is listening on port ${port}`);
+});
