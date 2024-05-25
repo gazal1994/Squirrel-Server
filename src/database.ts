@@ -2,9 +2,10 @@ import mysql from 'mysql2/promise';
 
 // Define the connection configuration
 const config = {
-    host: 'localhost',
+    //host: 'localhost',
+    host: 'database.cpu00mqi66vx.eu-north-1.rds.amazonaws.com',
     user: 'root',
-    password: 'root',
+    password: 'Gazal8101994',
     database: 'react',
     port: 3306
 };
