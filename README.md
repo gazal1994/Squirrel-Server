@@ -41,7 +41,7 @@ Follow the steps below to set up the project on your local system:
 1. Clone the Github Repo: `git clone https://github.com/shubham-sharmas/typescript-node-project.git`
 2. Install dependencies: `npm i`
 3. Start dev server: `npm run dev`
-4. Open URL: `http://localhost:3000/`
+4. Open URL: `http://localhost:3001/`
 
 ### Package.json start scripts
 
